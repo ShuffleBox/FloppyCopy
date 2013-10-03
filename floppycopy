@@ -1,0 +1,89 @@
+#!/bin/bash
+LSMOD=/sbin/lsmod
+DEPMOD=/sbin/depmod
+MODPROBE=/sbin/modprobe
+GREP=/bin/grep
+AWK=/bin/awk
+SED=/usr/bin/sed
+DEST=$1
+SOURCE="/tmp/floppydisk"
+CURRENT=$(date +%m-%d-%Y_%s)
+
+#Check if we're root or sudo'd it.
+if [[ $EUID -ne 0 ]]; then
+  echo "This script must be run as root." 1>&2
+  echo "Usage: #>sudo $0 /destination/path/"
+  exit 1
+fi
+
+#Test if destination provided
+if [ ! -d "$DEST" ]; then
+  echo "File destination not provided..."
+  exit 5
+fi 
+
+#Remove trailing slash on destination
+if [ "$DEST" ]; then
+  #echo $DEST
+  DEST="`echo $DEST | $SED 's/\/$//g' `"
+  #echo $DEST
+fi  
+#echo "Updated Destination $DEST"
+#check floppy module, load if not
+if [ -z "`$LSMOD | $GREP floppy | $AWK {'print $1'} `" ]; then
+   echo "Kernel Module for floppy drive not loaded.  Loading..."
+   $MODPROBE floppy
+   echo "Kernel Module for floppy drive loaded."
+else
+  echo "Kernel module for floppy drive already loaded."
+fi
+
+#echo `grep fd0 /proc/mounts`
+
+#check if fd0 is already mounted (for some reason)
+if [ -n "`cat /proc/mounts | $GREP fd0 | $AWK {'print $1'} `" ]; then
+  echo "Floppy is already mounted!"
+  exit 5
+fi
+
+
+# "Mount fd0 in default or specified mount dir"
+if [ ! -d "$SOURCE" ]; then
+  mkdir -p $SOURCE
+  mount /dev/fd0 $SOURCE
+else
+  mount /dev/fd0 $SOURCE
+fi
+
+#check if fd0 is already mounted (for some reason)
+if [ -z "`cat /proc/mounts | $GREP fd0 | $AWK {'print $1'} `" ]; then
+  echo "Floppy disk is not mounted."
+  echo "Check that a disk is in the drive and the door is closed."
+  exit 5
+fi
+
+if [ -d "$DEST" ]; then
+  #echo "Drive mounted, destination read, lets go!"
+  mkdir $DEST/$CURRENT
+  if [ ! -d "$DEST/$CURRENT" ]; then
+     echo "The destination directory could not be created."
+     exit 5
+  fi
+
+  echo $SOURCE  
+  for file in $SOURCE/*
+  do
+    cp -v -p $file $DEST/$CURRENT
+  done
+
+  #Set ownership to oralhistory (this is tacky)
+  chown -R oralhistory $DEST/$CURRENT
+
+  echo "Copy complete.  Unmounting drive. "
+  umount $SOURCE
+  echo "Drive unmounted.  Safe to remove disk."
+else
+  echo "Destination directory does not exist. Please check and try again."\n
+
+fi
+
