@@ -76,8 +76,8 @@ if [ -d "$DEST" ]; then
     cp -v -p $file $DEST/$CURRENT
   done
 
-  #Set ownership to oralhistory (this is tacky)
-  chown -R oralhistory $DEST/$CURRENT
+  #Set ownership to user (this is tacky)
+  #chown -R <username> $DEST/$CURRENT
 
   echo "Copy complete.  Unmounting drive. "
   umount $SOURCE
