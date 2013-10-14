@@ -8,6 +8,7 @@ SED=/usr/bin/sed
 DEST=$1
 SOURCE="/tmp/floppydisk"
 CURRENT=$(date +%m-%d-%Y_%s)
+WHOAMI=$(who am i | awk '{print $1}')
 
 #Check if we're root or sudo'd it.
 if [[ $EUID -ne 0 ]]; then
@@ -76,8 +77,8 @@ if [ -d "$DEST" ]; then
     cp -v -p $file $DEST/$CURRENT
   done
 
-  #Set ownership to user (this is tacky)
-  #chown -R <username> $DEST/$CURRENT
+  #reSet ownership to user 
+  chown -R $WHOAMI $DEST/$CURRENT
 
   echo "Copy complete.  Unmounting drive. "
   umount $SOURCE
